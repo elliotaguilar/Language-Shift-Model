@@ -1,0 +1,408 @@
+ 
+from random import seed,random,randrange,randint,choice,shuffle,sample
+from math import exp,sqrt,floor,pow
+from copy import deepcopy
+from datetime import datetime,date
+#------------------------------------------------------------
+#--------------------------Parameters------------------------
+#------------------------------------------------------------
+year1=1975
+year2=1980
+year3=1997
+year4=2007
+start_year=year1
+
+N_1 = 1                          # Initial pop of L1 default 1
+N_2 = 200                             # Intital pop of L2 default 200
+Nint=365                            #365 # of interactions per lifetime
+Nyear=32 #32 years; year4-year1                            #25 # of generations
+H1=True                            #hypothesis 1: L2 speakers introduce variation
+H2=False                             #hypothesis 2: L1 speakers introduce variation
+H3=False
+variants=2                          # number of possible variants
+weight12 = .05                      # reaction of L1 to L2
+weight21 = .05                      # reaction of L2 to L1
+weight11 = .05                       # reaction of L1 to L1
+weight22 = .05                     # reaction of L2 to L2
+num_runs=10                        #default is 10
+
+
+
+
+
+
+
+#------------------------------------------------------------
+#------------------Simulation Functions----------------------
+#------------------------------------------------------------
+
+
+def parameters_update(year,year1,year2,year3,L1,L2):
+    global g
+    if year >=year1:      #1975-1980
+        if year==year1+1:
+            pop=L1+L2
+            final_pop=(6525+326521)/100
+            g=pow(final_pop/pop,(1/(year2-year1)))
+            print('In year = ',str(year),' g = ',str(g))
+        drate=0.0217
+        brate=.016
+        rrate=g-brate+drate-1
+    if year >=year2+1:      #1980-1997
+        if year==year2+1:
+            N1=L1
+            N2=L2
+            final_pop=(241709+599438)/100
+            g=pow(final_pop/(N1+N2),(1/(year3-year2)))
+            print('In year = ',str(year),' g = ',str(g))
+        drate=0.02075734
+        brate=.03
+        rrate=g-brate+drate-1
+    if year >=year3+1:      #1997-2007
+        if year==year3+1:
+            N1=L1
+            N2=L2
+            final_pop=(470690+612992)/100
+            g=pow(final_pop/(N1+N2),(1/(year4-year3)))
+            print('In year = ',str(year),' g = ',str(g))
+        drate=0.0171441
+        brate=.03
+        rrate=g-brate+drate-1       
+    return drate,brate,rrate
+        
+
+def count_L1_L2(population):
+    L1=0
+    L2=0
+    for index,person in enumerate(population):
+        if person[0]==1: L1=L1+1
+        if person[0]==2: L2=L2+1
+    return L1,L2
+
+def interaction(population):
+    pairs=list()
+    seq=list()
+    current_pop=population
+    for ind1,person1 in enumerate(population):seq.append(ind1)
+    for ind1,person1 in enumerate(population):
+        if ind1 in seq:
+            seq.remove(ind1)
+            if not seq: break
+            ind2=choice(seq)
+            seq.remove(ind2)
+            pairs.append([ind1,ind2])
+    for index,pair in enumerate(pairs):
+        person1=population[pair[0]]
+        person2=population[pair[1]]
+        if len(person2)>len(population[0]):print('Broken at int')
+        point=random()
+        s=0
+        for k in range(1,len(person2)):
+            s+=person2[k]
+            if point<=s:
+                utterance2=k
+                break
+        point=random()
+        s=0
+        for k in range(1,len(person1)):
+            s+=person1[k]
+            if point<=s:
+                utterance1=k
+                break
+        if person1[0]==1 and person2[0]==1:  #check types
+            population[pair[0]][utterance2]=current_pop[pair[0]][utterance2]+(1-current_pop[pair[0]][utterance2])*weight11
+            for k in range(1,len(person1)):
+                if k!=utterance2: population[pair[0]][k]=current_pop[pair[0]][k]-current_pop[pair[0]][k]*weight11
+            population[pair[1]][utterance1]=current_pop[pair[1]][utterance1]+(1-current_pop[pair[1]][utterance1])*weight11
+            for k in range(1,len(person1)): 
+                if k!=utterance1: population[pair[1]][k]=current_pop[pair[1]][k]-current_pop[pair[1]][k]*weight11
+        if person1[0]==2 and person2[0]==2:#check types
+            population[pair[0]][utterance2]=current_pop[pair[0]][utterance2]+(1-current_pop[pair[0]][utterance2])*weight22
+            for k in range(1,len(person1)):
+                if k!=utterance2: population[pair[0]][k]=current_pop[pair[0]][k]-current_pop[pair[0]][k]*weight22
+            population[pair[1]][utterance1]=current_pop[pair[1]][utterance1]+(1-current_pop[pair[1]][utterance1])*weight22
+            for k in range(1,len(person1)): 
+                if k!=utterance1: population[pair[1]][k]=current_pop[pair[1]][k]-current_pop[pair[1]][k]*weight22
+        if person1[0]==1 and person2[0]==2:#check types
+            population[pair[0]][utterance2]=current_pop[pair[0]][utterance2]+(1-current_pop[pair[0]][utterance2])*weight12
+            for k in range(1,len(person1)):
+                if k!=utterance2: population[pair[0]][k]=current_pop[pair[0]][k]-current_pop[pair[0]][k]*weight12
+            population[pair[1]][utterance1]=current_pop[pair[1]][utterance1]+(1-current_pop[pair[1]][utterance1])*weight12
+            for k in range(1,len(person1)): 
+                if k!=utterance1: population[pair[1]][k]=current_pop[pair[1]][k]-current_pop[pair[1]][k]*weight12
+        if person1[0]==2 and person2[0]==1:#check types
+            population[pair[0]][utterance2]=current_pop[pair[0]][utterance2]+(1-current_pop[pair[0]][utterance2])*weight21
+            for k in range(1,len(person1)):
+                if k!=utterance2: population[pair[0]][k]=current_pop[pair[0]][k]-current_pop[pair[0]][k]*weight21
+            population[pair[1]][utterance1]=current_pop[pair[1]][utterance1]+(1-current_pop[pair[1]][utterance1])*weight21
+            for k in range(1,len(person1)): 
+                if k!=utterance1: population[pair[1]][k]=current_pop[pair[1]][k]-current_pop[pair[1]][k]*weight21
+    return(population)
+
+def Hypothesis1(population,variants,drate,brate,rrate,L1,L2):
+    recruits=floor(rrate*len(population))
+    recruits_list=[]
+    for i in range(recruits):
+        person=[]
+        for j in range(variants+1):person.append(0)
+        if random()<=mrate:
+           mutant=randint(2,variants) #remember the indexing starts at 0, hence, no +1 here
+           person[mutant]=1
+        else:
+            for q in range(len(person)):
+                for ind,item in enumerate(population): person[q]+=item[q]/len(population)
+        person[0]=2
+        if person[0]!=2: print('person not assigned properly at Hyp1')
+        recruits_list.append(person)
+    return recruits_list
+                               
+def Hypothesis2(population,variants,drate,brate,rrate,L1,L2):
+    births=floor(brate*len(population))
+    births_list=[]
+    recruits_list=[]
+    current_pop=population
+    if H1==False:
+        recruits=floor(rrate*len(current_pop))
+        for i in range(recruits):
+            person=[]
+            for j in range(variants+1):person.append(0)
+            for q in range(len(person)):
+                for ind,item in enumerate(current_pop): person[q]+=item[q]/len(current_pop)
+            person[0]=2
+            recruits_list.append(person)
+    for i in range(births):
+        person=[]
+        person.append(1)
+        for j in range(variants):person.append(0)
+        if random()<=mrate:
+           mutant=randint(2,variants) #remember the indexing starts at 0, hence, no +1 here
+           person[mutant]=1
+        else:
+            parents=sample(current_pop,2)
+            parent1=parents[0]
+            parent2=parents[1]
+            for q in range(1,len(parent1)):person[q]=parent1[q]/2+parent2[q]/2
+        births_list.append(person)
+    if H1==False: return births_list,recruits_list
+    else: return births_list
+
+def Hypothesis3(population,variants,drate,brate,rrate,L1,L2):
+    births=floor(brate*len(population))
+    births_list=[]
+    current_pop=population
+    for i in range(births):
+        person=[]
+        person.append(1)
+        for j in range(variants):person.append(0)
+        parents=sample(current_pop,2)
+        parent1=parents[0]
+        parent2=parents[1]
+        if parent1[0]==2 or parent2[0]==2:
+            if random()<=mrate:
+                mutant=randint(2,variants) #remember the indexing starts at 0, hence, no +1 here
+                person[mutant]=1
+        else:
+            for q in range(1,len(population[0])):person.append(parent1[q]/2+parent2[q]/2)     
+        if len(person)>len(population[0]): print('broken at Birth','length is ',str(person))
+        if person[0]!=1: print('person not properly assigned at Birth')
+        births_list.append(person)
+    return births_list  
+
+
+def Births(population,variants,drate,brate,rrate,L1,L2):
+    births=floor(brate*len(population))
+    births_list=[]
+    current_pop=population
+    for i in range(births):
+        person=[]
+        person.append(1)
+        parents=sample(current_pop,2)
+        parent1=parents[0]
+        parent2=parents[1]
+        for q in range(1,len(parent1)):person.append(parent1[q]/2+parent2[q]/2)     
+        if len(person)>len(population[0]): print('broken at Birth')
+        if person[0]!=1: print('person not properly assigned at Birth')
+        births_list.append(person)
+    return births_list                              
+
+def Deaths(population,drate,brate,rrate):
+    ndeaths=floor(drate*(len(population)))
+    dead=sample(range(len(population)),ndeaths)
+    dead=sorted(dead, reverse=True)
+    for index,item in enumerate(dead):
+        del population[item]
+    return(population)
+#------------------------------------------------------------
+#-----------------------Data Functions-----------------------
+#------------------------------------------------------------
+
+def parameter_string():
+    parm_str= 'no_of_years:          '+str(Nyear)+'\n'
+    parm_str+='int_per_year:         '+str(Nint)+'\n'
+    parm_str+='Hypothesis 1:         '+str(H1)+'\n'
+    parm_str+='Hypothesis 2:         '+str(H2)+'\n'
+    parm_str+='N_1_initial           '+str(N_1)+'\n'
+    parm_str+='N_2_intital:          '+str(N_2)+'\n'
+    parm_str+='no_variants:          '+str(variants)+'\n'
+    parm_str+='weight_1_1:           '+str(weight11)+'\n'
+    parm_str+='weight_2_2:           '+str(weight22)+'\n'
+    parm_str+='weight_2_1:           '+str(weight21)+'\n'
+    parm_str+='weight_1_2:           '+str(weight12)+'\n'                              
+    #parm_str+='death rate:           '+str(drate)+'\n'
+    #parm_str+='birth rate:           '+str(brate)+'\n'
+    #parm_str+='recruit rate:         '+str(rrate)+'\n'
+    parm_str+='mutate rate:          '+str(mrate)+'\n'                              
+    return parm_str 
+
+def Timeseries_all_collect(population,Timeseries_all):
+    freq=[]
+    for v in range(variants):freq.append([0])
+    for i in range(len(population)):
+        for j in range(variants): freq[j][0]+=population[i][j+1]
+    for u in range(len(Timeseries_all)): Timeseries_all[u].append(freq[u][0]/len(population))
+    return(Timeseries_all)
+
+def Timeseries_L1_collect(population,Timeseries_L1):
+    freq=[]
+    for v in range(variants):freq.append([0])
+    nL1=0                              
+    for i in range(len(population)):
+        if population[i][0]==1:
+            nL1+=1 
+            for j in range(variants): freq[j][0]+=population[i][j+1]                             
+    for u in range(len(Timeseries_L1)):
+        if nL1>0: Timeseries_L1[u].append(freq[u][0]/nL1)
+        else: Timeseries_L1[u].append(0)
+    return(Timeseries_L1)
+
+def Timeseries_L2_collect(population,Timeseries_L2):
+    freq=[]
+    for v in range(variants):freq.append([0])
+    nL2=0                           
+    for i in range(len(population)):
+        if population[i][0]==2:
+           nL2+=1
+           for j in range(variants): freq[j][0]+=population[i][j+1]
+    for u in range(len(Timeseries_L2)):
+        if nL2>0: Timeseries_L2[u].append(freq[u][0]/nL2)
+        else:Timeseries_L2[u].append(0)
+    return(Timeseries_L2)
+
+def Population_growth(population):
+    count=0
+    count1=0
+    count2=0
+    for index,person in enumerate(population):
+        if person[0]==1:
+            count1+=1
+            count+=1
+        if person[0]==2:
+            count2+=1
+            count+=1
+    Population_size[0].append(count)
+    Population_size[1].append(count1)
+    Population_size[2].append(count2)
+    return(Population_growth)
+
+
+
+#------------------------------------------------------------
+#--------------------------Simulation------------------------
+#------------------------------------------------------------
+#m_rates=[.009,.05,.07,.1,.3,.5,.7,.9]
+m_rates=[.07]
+#m_rates=[.05,.1,.3,.5,.7,.9]
+
+for m_run in range(len(m_rates)):
+    mrate=m_rates[m_run]
+    
+    time_stamp = str(datetime.today())[:16].replace(':','.')
+    id_str = 'Fredrik_Maputo_SIMULATION_'+str(datetime.today())[:16].replace(':','.')+'_Angola_'
+    id_str = id_str.replace(' ','_')
+    start_str='\nSIMULATION START  ' + str(datetime.today())[:16] + '\n'+ parameter_string()
+    #filepath='/Users/davidlahti/Dropbox/Language_Simulations/Data/'
+    #filepath='/Users/davidlahti/Dropbox/Language_Simulations/Data/uneven_runs/H1/r_great_b/'
+    filepath=''
+
+    f=open(filepath+id_str+'_m_'+str(m_rates[m_run])+'.txt',"a")
+
+
+    for run in range(num_runs):
+        print(start_str)
+        population=[]
+        for i in range(N_1):population.append([1])
+        for i in range(N_2):population.append([2])
+        for i in range(len(population)):
+            for j in range(variants):population[i].append(0)
+        for index,person in enumerate(population):
+            person[1]=1
+            population[index]=person
+    
+        Timeseries_all=[]
+        Timeseries_L1=[]
+        Timeseries_L2=[]    
+        Population_size=[]
+        for i in range(3):Population_size.append([])
+        for i in range(variants):
+            Timeseries_all.append([])
+            Timeseries_L1.append([])
+            Timeseries_L2.append([])
+
+
+        for y in range(start_year+1,Nyear+start_year+1):
+            L1,L2=count_L1_L2(population)
+            drate,brate,rrate=parameters_update(y,year1,year2,year3,L1,L2)
+            for int in range(Nint):
+                interaction(population)
+            if H1 is True: recruits_list=Hypothesis1(population,variants,drate,brate,rrate,L1,L2)
+            if H2 is True:
+                if H1==False: births_list,recruits_list=Hypothesis2(population,variants,drate,brate,rrate,L1,L2)
+                else: births_list=Hypothesis2(population,variants,drate,brate,rrate,L1,L2)
+            else:
+                if H1 is True and H3 is True and H2 is False:
+                    births_list=Hypothesis3(population,variants,drate,brate,rrate,L1,L2)
+                else: births_list=Births(population,variants,drate,brate,rrate,L1,L2)
+            population=Deaths(population,drate,brate,rrate)
+            for ind,recruit in enumerate(recruits_list): population.append(recruit)
+            for ind,birth in enumerate(births_list): population.append(birth)
+            Timeseries_all_collect(population,Timeseries_all)                               
+            Timeseries_L1_collect(population,Timeseries_L1) 
+            Timeseries_L2_collect(population,Timeseries_L2)
+            Population_growth(population)
+            #print('year = ',str(y))
+            #L1,L2=count_L1_L2(population)
+            #print('L1 = ',str(L1),'L2 = ',str(L2))
+    
+    
+        print(start_str,file=f)
+        for i in range(len(Timeseries_all)):
+            output=""
+            for j in range(len(Timeseries_all[i])):output+=format(Timeseries_all[i][j],'.3f')+" "
+            output+='\r'
+            print(output,file=f)
+            #print(output)
+        
+        for i in range(len(Timeseries_L1)):
+            output=""
+            for j in range(len(Timeseries_L1[i])):output+=format(Timeseries_L1[i][j],'.3f')+" "
+            output+='\r'
+            print(output,file=f)
+            #print(output)
+
+
+        for i in range(len(Timeseries_L2)):
+            output=""
+            for j in range(len(Timeseries_L2[i])):output+=format(Timeseries_L2[i][j],'.3f')+" "
+            output+='\r'
+            print(output,file=f)
+            #print(output)
+    
+        output=""
+        for i in range(len(Population_size)):
+            for j in range(len(Population_size[i])):output+=format(Population_size[i][j],'.0f')+" "
+            output+='\r'
+        print(output,file=f)
+        #print(output)
+
+
+    f.close()
